@@ -158,24 +158,73 @@ def create_temp_validation_train_and_testing_sets(df, selected_features, outcome
   start_time_date = datetime.strptime(start_time, '%Y-%m-%d')
   end_time_date = datetime.strptime(end_time, '%Y-%m-%d')
 
-  train_start_time = start_time_date
-  test_start_time = end_time_date - relativedelta(months=+prediction_window)
-  train_end_time = test_start_time - relativedelta(days=+1)
-  test_end_time = end_time_date
-  
-  train_and_test_set = extract_train_test_sets (df, test_start_time, train_end_time, date_column)
+  #We create the 3 test sets
+  #THIS CODE IS HORRIBLE AND SUPER REPETITIVE, IM JUST RUNNING OUT OF TIME. TO ME IMPROVED
 
-  train_set = train_and_test_set[0]
-  test_set = train_and_test_set[1]
+  train_start_time = start_time_date
+  test_start_time_1 = end_time_date - relativedelta(months=+prediction_window)
+  train_end_time_1 = test_start_time_1 - relativedelta(days=+1)
+  test_end_time_1 = end_time_date
+
+  train_start_time = start_time_date
+  test_start_time_2 = end_time_date - 2*relativedelta(months=+prediction_window)
+  train_end_time_2 = test_start_time_2 - relativedelta(days=+1)
+  test_end_time_2 = end_time_date - 1*relativedelta(months=+prediction_window)
+
+  train_start_time = start_time_date
+  test_start_time_3 = end_time_date - 3*relativedelta(months=+prediction_window)
+  train_end_time_3 = test_start_time_3 - relativedelta(days=+1)
+  test_end_time_3 = end_time_date - 2*relativedelta(months=+prediction_window)
+
+  # print(train_start_time)
+  # print(train_end_time_1)
+  # print(test_start_time_1)
+  # print(test_end_time_1)
+  # print("\n")
+
+  # print(train_start_time)
+  # print(train_end_time_2)
+  # print(test_start_time_2)
+  # print(test_end_time_2)
+  # print("\n")
+  
+  # print(train_start_time)
+  # print(train_end_time_3)
+  # print(test_start_time_3)
+  # print(test_end_time_3)
+
+  
+  train_and_test_set_1 = extract_train_test_sets (df, test_start_time_1, train_end_time_1, date_column)
+  train_and_test_set_2 = extract_train_test_sets (df, test_start_time_2, train_end_time_2, date_column)
+  train_and_test_set_3 = extract_train_test_sets (df, test_start_time_3, train_end_time_3, date_column)
+
+  train_set_1 = train_and_test_set_1[0]
+  test_set_1 = train_and_test_set_1[1]
+  train_set_2 = train_and_test_set_2[0]
+  test_set_2 = train_and_test_set_2[1]
+  train_set_3 = train_and_test_set_3[0]
+  test_set_3 = train_and_test_set_3[1]
 
   # Now filter for selected columns
-  x_train = train_set[selected_features]
-  y_train = train_set[outcome]
+  x_train_1 = train_set_1[selected_features]
+  y_train_1 = train_set_1[outcome]
+  x_train_2 = train_set_1[selected_features]
+  y_train_2 = train_set_1[outcome]
+  x_train_3 = train_set_1[selected_features]
+  y_train_3 = train_set_1[outcome]
 
-  x_test = test_set[selected_features]
-  y_test = test_set[outcome]
+  x_test_1 = test_set_1[selected_features]
+  y_test_1 = test_set_1[outcome]
+  x_test_2 = test_set_2[selected_features]
+  y_test_2 = test_set_2[outcome]
+  x_test_3 = test_set_3[selected_features]
+  y_test_3 = test_set_3[outcome]
 
-  return (x_train, x_test, y_train, y_test)
+
+
+  return (x_train_1, x_test_1, y_train_1, y_test_1,
+          x_train_2, x_test_2, y_train_2, y_test_2,
+          x_train_3, x_test_3, y_train_3, y_test_3)
 
 def get_train_and_testing_sets(df, selected_features, outcome, test_size):
   print ("Creating train and test sets...")
