@@ -315,7 +315,8 @@ def generate_binary_at_k(y_scores, k):
     predictions_binary = [1 if x < cutoff_index else 0 for x in range(len(y_scores))]
     return predictions_binary
 
-def precision_at_k(y_true, y_scores, k):
+
+def metric_at_k(y_true, y_scores, k, metric):
 
     y_scores, y_true = joint_sort_descending(np.array(y_scores), np.array(y_true))
     
@@ -325,9 +326,13 @@ def precision_at_k(y_true, y_scores, k):
 
     # #classification_report returns different metrics for the prediction
     results = classification_report(y_true, binary_predictions_at_k, output_dict = True)
-    precision = results['1']['precision']
+    
+    if(metric=='precision'):
+      metric = results['1']['precision']
+    elif(metric=='recall'):
+      metric = results['1']['recall']
 
-    return precision
+    return metric
 
 def iterate_over_models(models_to_run, models, parameters_grid, x_train, x_test, y_train, y_test):
   
@@ -336,12 +341,19 @@ def iterate_over_models(models_to_run, models, parameters_grid, x_train, x_test,
     'model',
     'parameters',
     'p_at_1',
+    'r_at_1',
     'p_at_2',
+    'r_at_2',
     'p_at_5',
+    'r_at_5',
     'p_at_10',
+    'r_at_10',
     'p_at_20',
+    'r_at_20',
     'p_at_30',
+    'r_at_30',
     'p_at_50',
+    'r_at_50',
     'auc-roc'))
 
 
@@ -378,15 +390,23 @@ def iterate_over_models(models_to_run, models, parameters_grid, x_train, x_test,
             results_df.loc[len(results_df)] = [models_to_run[index],
                                                model,
                                                p,
-                                               precision_at_k(y_test_sorted,y_pred_scores_sorted,1.0),
-                                               precision_at_k(y_test_sorted,y_pred_scores_sorted,2.0),                                             
-                                               precision_at_k(y_test_sorted,y_pred_scores_sorted,5.0),
-                                               precision_at_k(y_test_sorted,y_pred_scores_sorted,10.0),
-                                               precision_at_k(y_test_sorted,y_pred_scores_sorted,20.0),
-                                               precision_at_k(y_test_sorted,y_pred_scores_sorted,30.0),
-                                               precision_at_k(y_test_sorted,y_pred_scores_sorted,50.0),
-                                               roc_auc_score(y_test, y_pred_scores)
-                                               ]
+
+              metric_at_k(y_test_sorted,y_pred_scores_sorted,1.0,'precision'),
+              metric_at_k(y_test_sorted,y_pred_scores_sorted,1.0,'recall'),
+              metric_at_k(y_test_sorted,y_pred_scores_sorted,2.0,'precision'),
+              metric_at_k(y_test_sorted,y_pred_scores_sorted,2.0,'recall'),
+              metric_at_k(y_test_sorted,y_pred_scores_sorted,5.0,'precision'),
+              metric_at_k(y_test_sorted,y_pred_scores_sorted,5.0,'recall'),
+              metric_at_k(y_test_sorted,y_pred_scores_sorted,10.0,'precision'),
+              metric_at_k(y_test_sorted,y_pred_scores_sorted,10.0,'recall'),
+              metric_at_k(y_test_sorted,y_pred_scores_sorted,20.0,'precision'),
+              metric_at_k(y_test_sorted,y_pred_scores_sorted,20.0,'recall'),
+              metric_at_k(y_test_sorted,y_pred_scores_sorted,30.0,'precision'),
+              metric_at_k(y_test_sorted,y_pred_scores_sorted,30.0,'recall'),
+              metric_at_k(y_test_sorted,y_pred_scores_sorted,50.0,'precision'),
+              metric_at_k(y_test_sorted,y_pred_scores_sorted,50.0,'recall'),
+              roc_auc_score(y_test, y_pred_scores)
+              ]
  
         except IndexError as e:
             print('Error:',e)
