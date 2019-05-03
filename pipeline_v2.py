@@ -29,7 +29,7 @@ from sklearn.metrics import *
 from datetime import date, datetime, timedelta
 from dateutil.relativedelta import relativedelta
 
-
+from sklearn.metrics import precision_recall_curve
 
 pd.options.mode.chained_assignment = None  # default='warn'
 
@@ -318,7 +318,7 @@ def get_models_and_parameters():
         'DT': DecisionTreeClassifier(random_state=0),
 
         'LR': LogisticRegression(penalty='l1', C=1),
-        'SVM': LinearSVC(random_state=0, tol=1e-5, C=1),
+        'SVM': LinearSVC(random_state=0, tol=1e-5, C=1, max_iter=10000.),
 
         'AB': AdaBoostClassifier(n_estimators=100),
         'RF': RandomForestClassifier(n_estimators=100, max_depth=2, random_state=0),
@@ -332,7 +332,7 @@ def get_models_and_parameters():
     'DT': {'criterion': ['gini', 'entropy'], 'max_depth': [1,5,10,50,100],'min_samples_split': [2,5]},
 
     'LR': { 'penalty': ['l1','l2'], 'C': [0.001,0.1,1,10]},
-    'SVM': {'C' :[0.001,0.01,0.1,1,10]},
+    'SVM': {'C' :[10**-2, 10**-1, 1 , 10, 10**2]}, #[10**-2, 10**-1, 1 , 10, 10**2]
 
     'AB': { 'algorithm': ['SAMME', 'SAMME.R'], 'n_estimators': [1,10,100]},
     'RF': {'n_estimators': [10,100], 'max_depth': [5,50], 'max_features': ['sqrt','log2'],'min_samples_split': [2,10], 'n_jobs': [-1]},
@@ -373,7 +373,12 @@ def metric_at_k(y_true, y_scores, k, metric):
     elif(metric=='recall'):
       metric = results['1']['recall']
 
+    elif(metric=='f1'):
+      metric = results['1']['f1-score']
+
     return metric
+
+
 
 def iterate_over_models(models_to_run, models, parameters_grid, x_train, x_test, y_train, y_test):
   
@@ -385,18 +390,25 @@ def iterate_over_models(models_to_run, models, parameters_grid, x_train, x_test,
     # 'test_set',
     'p_at_1',
     'r_at_1',
+    'f1_at_1',
     'p_at_2',
     'r_at_2',
+    'f1_at_2',
     'p_at_5',
     'r_at_5',
+    'f1_at_5',
     'p_at_10',
     'r_at_10',
+    'f1_at_10',
     'p_at_20',
     'r_at_20',
+    'f1_at_20',
     'p_at_30',
     'r_at_30',
+    'f1_at_30',
     'p_at_50',
     'r_at_50',
+    'f1_at_50',
     'auc-roc'))
 
 
@@ -436,20 +448,29 @@ def iterate_over_models(models_to_run, models, parameters_grid, x_train, x_test,
 
               metric_at_k(y_test_sorted,y_pred_scores_sorted,1.0,'precision'),
               metric_at_k(y_test_sorted,y_pred_scores_sorted,1.0,'recall'),
+              metric_at_k(y_test_sorted,y_pred_scores_sorted,1.0,'f1'),
               metric_at_k(y_test_sorted,y_pred_scores_sorted,2.0,'precision'),
               metric_at_k(y_test_sorted,y_pred_scores_sorted,2.0,'recall'),
+              metric_at_k(y_test_sorted,y_pred_scores_sorted,2.0,'f1'),
               metric_at_k(y_test_sorted,y_pred_scores_sorted,5.0,'precision'),
               metric_at_k(y_test_sorted,y_pred_scores_sorted,5.0,'recall'),
+              metric_at_k(y_test_sorted,y_pred_scores_sorted,5.0,'f1'),
               metric_at_k(y_test_sorted,y_pred_scores_sorted,10.0,'precision'),
               metric_at_k(y_test_sorted,y_pred_scores_sorted,10.0,'recall'),
+              metric_at_k(y_test_sorted,y_pred_scores_sorted,10.0,'f1'),
               metric_at_k(y_test_sorted,y_pred_scores_sorted,20.0,'precision'),
               metric_at_k(y_test_sorted,y_pred_scores_sorted,20.0,'recall'),
+              metric_at_k(y_test_sorted,y_pred_scores_sorted,20.0,'f1'),
               metric_at_k(y_test_sorted,y_pred_scores_sorted,30.0,'precision'),
               metric_at_k(y_test_sorted,y_pred_scores_sorted,30.0,'recall'),
+              metric_at_k(y_test_sorted,y_pred_scores_sorted,30.0,'f1'),
               metric_at_k(y_test_sorted,y_pred_scores_sorted,50.0,'precision'),
               metric_at_k(y_test_sorted,y_pred_scores_sorted,50.0,'recall'),
+              metric_at_k(y_test_sorted,y_pred_scores_sorted,50.0,'f1'),
               roc_auc_score(y_test, y_pred_scores)
               ]
+
+
  
         except IndexError as e:
             print('Error:',e)
