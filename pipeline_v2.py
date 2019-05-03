@@ -155,14 +155,6 @@ def extract_train_test_sets (df, test_start_time, train_end_time, date_column):
 #5. Create temporal validation function in your pipeline that can create training and test sets over time. You can choose the length of these splits based on analyzing the data. For example, the test sets could be six months long and the training sets could be all the data before each test set.
 def create_temp_validation_train_and_testing_sets(df, selected_features, outcome, start_time, end_time, prediction_window, date_column):
 
-  # start_time = '2009-01-01'
-
-  # #last date of data including labels and outcomes that we have
-  # end_time = '2016-01-01'
-
-  # #how far out do we want to predict (let's say in months for now)
-  # prediction_window = 6
-
   start_time_date = datetime.strptime(start_time, '%Y-%m-%d')
   end_time_date = datetime.strptime(end_time, '%Y-%m-%d')
 
@@ -340,6 +332,8 @@ def iterate_over_models(models_to_run, models, parameters_grid, x_train, x_test,
     'model_name',
     'model',
     'parameters',
+    # 'train_set',
+    # 'test_set',
     'p_at_1',
     'r_at_1',
     'p_at_2',
