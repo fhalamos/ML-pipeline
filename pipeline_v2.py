@@ -1,4 +1,4 @@
-# Inspired/based on https://github.com/rayidghani/magicloops
+# Based on https://github.com/rayidghani/magicloops
 
 import csv
 import pandas as pd
@@ -32,6 +32,11 @@ from dateutil.relativedelta import relativedelta
 
 
 pd.options.mode.chained_assignment = None  # default='warn'
+
+# import warnings filter
+from warnings import simplefilter
+# ignore all future warnings
+simplefilter(action='ignore', category=FutureWarning)
 
 
 def read_csv(url):
@@ -310,78 +315,46 @@ def generate_binary_at_k(y_scores, k):
     predictions_binary = [1 if x < cutoff_index else 0 for x in range(len(y_scores))]
     return predictions_binary
 
-
-def calculate_precision_score(y_true, y_binary_predicted):
-  correct_predictions=0
-  for i in range(len(y_true)):
-    if(y_true[i]==y_binary_predicted[i]):
-      correct_predictions+=1
-  return correct_predictions/len(y_binary_predicted)
-
 def precision_at_k(y_true, y_scores, k):
 
-
-    
-    # What is this for??
     y_scores, y_true = joint_sort_descending(np.array(y_scores), np.array(y_true))
     
     #generate binary y_scores
     binary_predictions_at_k = generate_binary_at_k(y_scores, k)
 
 
-    # print("y true")
-    # print(y_true)
-    # print("predictions")
-    # print(binary_predictions_at_k)
-
     # #classification_report returns different metrics for the prediction
     results = classification_report(y_true, binary_predictions_at_k, output_dict = True)
-    # (_, _, f1, _) = metrics.precision_recall_fscore_support(y_true, binary_predictions_at_k,
-    #                                                 average='weighted', 
-    #                                                 warn_for=tuple())
     precision = results['1']['precision']
 
-    # !
-    # My method for precision is not working, or givin different results than the built one
-    # precision = calculate_precision_score(y_true, binary_predictions_at_k) 
-
-    # Trying to avoid warning messages....
-    # precision, _, _, _ = metrics.precision_recall_fscore_support(y_true, binary_predictions_at_k)
-    # (_, _, f1, _) = metrics.precision_recall_fscore_support(y_true, binary_predictions_at_k,
-    #                                                     average='weighted', 
-    #                                                     warn_for=tuple())
-    # precision = precision_score(y_true, binary_predictions_at_k)
-
-
-   
-    # precision, _, _, _ = metrics.precision_recall_fscore_support(y_true, binary_predictions_at_k)
-    #precision = precision[1]  # only interested in precision for label 1
-
-    
-    # print(precision)
     return precision
 
 def iterate_over_models(models_to_run, models, parameters_grid, x_train, x_test, y_train, y_test):
-  """Runs the loop using models_to_run, clfs, gridm and the data
-  """
-  #Pending to understand all this columns
-  results_df =  pd.DataFrame(columns=('model_name','model', 'parameters', 'p_at_5', 'p_at_10', 'p_at_20', 'auc-roc'))
+  
+  results_df =  pd.DataFrame(columns=(
+    'model_name',
+    'model',
+    'parameters',
+    'p_at_1',
+    'p_at_2',
+    'p_at_5',
+    'p_at_10',
+    'p_at_20',
+    'p_at_30',
+    'p_at_50',
+    'auc-roc'))
 
-  # for n in range(1, 2): ??
 
-  print("hola!!")
-  #For each of our models
+  # For each of our models
   for index,model in enumerate([models[x] for x in models_to_run]):
-      print(models_to_run[index])
+      print("Running "+str(models_to_run[index])+"...")
       
       #Get all possible parameters for the current model
       parameter_values = parameters_grid[models_to_run[index]]
-      print(parameter_values)
 
       #For every combination of parameters
       for p in ParameterGrid(parameter_values):
         try:
-            print("go!")
             #Set parameters to the model. ** alows us to use keyword arguments
             model.set_params(**p)
 
@@ -396,22 +369,22 @@ def iterate_over_models(models_to_run, models, parameters_grid, x_train, x_test,
               y_pred_scores = model.predict_proba(x_test)[:,1]
             
 
-            # you can also store the model, feature importances, and prediction scores
-            # we're only storing the metrics for now
 
-            #Pending: check zip method 
             #Sort according to y_pred_scores, keeping map to their y_test values
             y_pred_scores_sorted, y_test_sorted = zip(*sorted(zip(y_pred_scores, y_test), reverse=True))
 
 
-            #'model_name','model', 'parameters', ,'p_at_5', 'p_at_10', 'p_at_20','auc-roc'
 
             results_df.loc[len(results_df)] = [models_to_run[index],
                                                model,
                                                p,
+                                               precision_at_k(y_test_sorted,y_pred_scores_sorted,1.0),
+                                               precision_at_k(y_test_sorted,y_pred_scores_sorted,2.0),                                             
                                                precision_at_k(y_test_sorted,y_pred_scores_sorted,5.0),
                                                precision_at_k(y_test_sorted,y_pred_scores_sorted,10.0),
                                                precision_at_k(y_test_sorted,y_pred_scores_sorted,20.0),
+                                               precision_at_k(y_test_sorted,y_pred_scores_sorted,30.0),
+                                               precision_at_k(y_test_sorted,y_pred_scores_sorted,50.0),
                                                roc_auc_score(y_test, y_pred_scores)
                                                ]
  
