@@ -132,7 +132,7 @@ def get_bins_names(vector_indices,categories):
   return ans
 
 def create_dummies(df, cols_to_transform):
-  return pd.get_dummies(df, dummy_na=True, columns = cols_to_transform )
+  return pd.get_dummies(df, dummy_na=True, columns = cols_to_transform, drop_first=True)
 
 
 def create_discrete_feature(df, column, ranges, categories, new_column):
