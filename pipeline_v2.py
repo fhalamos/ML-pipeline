@@ -145,97 +145,41 @@ def create_discrete_feature(df, column, ranges, categories, new_column):
   print ("Done")
   return df
 
-def extract_train_test_sets (df, test_start_time, train_end_time, date_column):
 
-  train_set = df[df[date_column]<test_start_time]
-  test_set = df[df[date_column]>train_end_time]
 
-  return (train_set, test_set)
-
-#5. Create temporal validation function in your pipeline that can create training and test sets over time. You can choose the length of these splits based on analyzing the data. For example, the test sets could be six months long and the training sets could be all the data before each test set.
-def create_temp_validation_train_and_testing_sets(df, selected_features, outcome, start_time, end_time, prediction_window, date_column):
-
-  start_time_date = datetime.strptime(start_time, '%Y-%m-%d')
-  end_time_date = datetime.strptime(end_time, '%Y-%m-%d')
-
-  #We create the 3 test sets
-  #THIS CODE IS HORRIBLE AND SUPER REPETITIVE, IM JUST RUNNING OUT OF TIME. TO ME IMPROVED
-
-  train_start_time = start_time_date
-  test_start_time_1 = end_time_date - relativedelta(months=+prediction_window)
-  train_end_time_1 = test_start_time_1 - relativedelta(days=+1)
-  test_end_time_1 = end_time_date
-
-  train_start_time = start_time_date
-  test_start_time_2 = end_time_date - 2*relativedelta(months=+prediction_window)
-  train_end_time_2 = test_start_time_2 - relativedelta(days=+1)
-  test_end_time_2 = end_time_date - 1*relativedelta(months=+prediction_window)
-
-  train_start_time = start_time_date
-  test_start_time_3 = end_time_date - 3*relativedelta(months=+prediction_window)
-  train_end_time_3 = test_start_time_3 - relativedelta(days=+1)
-  test_end_time_3 = end_time_date - 2*relativedelta(months=+prediction_window)
-
-  # print(train_start_time)
-  # print(train_end_time_1)
-  # print(test_start_time_1)
-  # print(test_end_time_1)
-  # print("\n")
-
-  # print(train_start_time)
-  # print(train_end_time_2)
-  # print(test_start_time_2)
-  # print(test_end_time_2)
-  # print("\n")
+def create_temp_validation_train_and_testing_sets(df, features, data_column, label_column, split_thresholds, test_window):
+  '''
+  Creates a series of temporal validation train and test sets
+  Amount of train/test sets depends on length of split_thresholds
   
-  # print(train_start_time)
-  # print(train_end_time_3)
-  # print(test_start_time_3)
-  # print(test_end_time_3)
+  Training and test set are delimited by the split_thresholds
+  data_column indicates which column of dataframe (df) shall be used to compare with split_threshold value
 
-  
-  train_and_test_set_1 = extract_train_test_sets (df, test_start_time_1, train_end_time_1, date_column)
-  train_and_test_set_2 = extract_train_test_sets (df, test_start_time_2, train_end_time_2, date_column)
-  train_and_test_set_3 = extract_train_test_sets (df, test_start_time_3, train_end_time_3, date_column)
+  features contain features of data
+  label_colum indicates which column is the output label
+  test_window indicates length of test data
+  '''
 
-  train_set_1 = train_and_test_set_1[0]
-  test_set_1 = train_and_test_set_1[1]
-  train_set_2 = train_and_test_set_2[0]
-  test_set_2 = train_and_test_set_2[1]
-  train_set_3 = train_and_test_set_3[0]
-  test_set_3 = train_and_test_set_3[1]
+  #Array to save train and test sets
+  train_test_sets=[None] * len(split_thresholds)
 
-  # Now filter for selected columns
-  x_train_1 = train_set_1[selected_features]
-  y_train_1 = train_set_1[outcome]
-  x_train_2 = train_set_1[selected_features]
-  y_train_2 = train_set_1[outcome]
-  x_train_3 = train_set_1[selected_features]
-  y_train_3 = train_set_1[outcome]
+  #For each threshold, create training and test sets
+  for index, split_threshold in enumerate(split_thresholds):
+    #Columns of boolean values indicating if date_posted value is smaller/bigger than threshold
+    
+    #Train data is all data before threshold
+    train_filter = (df[data_column] < split_threshold)
 
-  x_test_1 = test_set_1[selected_features]
-  y_test_1 = test_set_1[outcome]
-  x_test_2 = test_set_2[selected_features]
-  y_test_2 = test_set_2[outcome]
-  x_test_3 = test_set_3[selected_features]
-  y_test_3 = test_set_3[outcome]
+    #Test data is all thats test_window time after threshold
+    test_filter = (df[data_column] >= split_threshold) & (df[data_column] < split_threshold+test_window)
+    
+    train_x, train_y = features[train_filter], df[label_column][train_filter]
+    test_x, test_y = features[test_filter], df[label_column][test_filter]
+    
+    train_test_sets[index]= [train_x, train_y, test_x, test_y]
 
+  return train_test_sets
 
-
-  return (x_train_1, x_test_1, y_train_1, y_test_1,
-          x_train_2, x_test_2, y_train_2, y_test_2,
-          x_train_3, x_test_3, y_train_3, y_test_3)
-
-def get_train_and_testing_sets(df, selected_features, outcome, test_size):
-  print ("Creating train and test sets...")
-
-  x = df[selected_features]
-  y = df[outcome]
-
-  x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=test_size)
-
-  print("Done")
-  return x_train, x_test, y_train, y_test
 
 
 def create_binary_feature(df, column, values_for_true_assignment, new_column):
@@ -260,16 +204,7 @@ def create_binary_feature(df, column, values_for_true_assignment, new_column):
   print ("Done")
   return df
 
-def get_train_and_testing_sets(df, selected_features, outcome, test_size):
-  print ("Creating train and test sets...")
 
-  x = df[selected_features]
-  y = df[outcome]
-
-  x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=test_size)
-
-  print("Done")
-  return x_train, x_test, y_train, y_test
 
 def build_classifier(type_classifier, x_train, y_train, params=None):
   print ("Creating "+type_classifier+ " classifier...")
