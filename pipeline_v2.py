@@ -165,6 +165,11 @@ def create_temp_validation_train_and_testing_sets(df, features, data_column, lab
 
   #For each threshold, create training and test sets
   for index, split_threshold in enumerate(split_thresholds):
+
+    train_test_set={}
+    train_test_set['id']=index
+    train_test_set['split_threshold']=split_threshold
+
     #Columns of boolean values indicating if date_posted value is smaller/bigger than threshold
     
     #Train data is all data before threshold
@@ -173,10 +178,12 @@ def create_temp_validation_train_and_testing_sets(df, features, data_column, lab
     #Test data is all thats test_window time after threshold
     test_filter = (df[data_column] >= split_threshold) & (df[data_column] < split_threshold+test_window)
     
-    train_x, train_y = features[train_filter], df[label_column][train_filter]
-    test_x, test_y = features[test_filter], df[label_column][test_filter]
+    train_test_set['x_train'] = features[train_filter]
+    train_test_set['y_train'] = df[label_column][train_filter]
+    train_test_set['x_test'] = features[test_filter] 
+    train_test_set['y_test'] = df[label_column][test_filter]
     
-    train_test_sets[index]= [train_x, train_y, test_x, test_y]
+    train_test_sets[index]= train_test_set
 
   return train_test_sets
 
@@ -329,15 +336,13 @@ def metric_at_k(y_true, y_scores, k, metric):
     return metric
 
 
-
-def iterate_over_models(models_to_run, models, parameters_grid, x_train, x_test, y_train, y_test):
+def iterate_over_models_and_training_test_sets(models_to_run, models, parameters_grid, train_test_sets):
   
   results_df =  pd.DataFrame(columns=(
     'model_name',
     'model',
     'parameters',
-    # 'train_set',
-    # 'test_set',
+    'train_test_split_threshold',
     'p_at_1',
     'r_at_1',
     'f1_at_1',
@@ -361,9 +366,11 @@ def iterate_over_models(models_to_run, models, parameters_grid, x_train, x_test,
     'f1_at_50',
     'auc-roc'))
 
+  #For each training and test set
+  for train_test_set in train_test_sets:
 
   # For each of our models
-  for index,model in enumerate([models[x] for x in models_to_run]):
+    for index,model in enumerate([models[x] for x in models_to_run]):
       print("Running "+str(models_to_run[index])+"...")
       
       #Get all possible parameters for the current model
@@ -376,28 +383,23 @@ def iterate_over_models(models_to_run, models, parameters_grid, x_train, x_test,
             model.set_params(**p)
 
             #Train model
-            model.fit(x_train, y_train)
+            model.fit(train_test_set['x_train'], train_test_set['y_train'])
             
             #Predict
             y_pred_scores=0
             if(models_to_run[index] == 'SVM'):
-              y_pred_scores = model.decision_function(x_test)
+              y_pred_scores = model.decision_function(train_test_set['x_test'])
             else:
-              y_pred_scores = model.predict_proba(x_test)[:,1]
+              y_pred_scores = model.predict_proba(train_test_set['x_test'])[:,1]
             
-
 
             #Sort according to y_pred_scores, keeping map to their y_test values
-            y_pred_scores_sorted, y_test_sorted = zip(*sorted(zip(y_pred_scores, y_test), reverse=True))
-
-
-
-            
-
+            y_pred_scores_sorted, y_test_sorted = zip(*sorted(zip(y_pred_scores, train_test_set['y_test']), reverse=True))
 
             results_df.loc[len(results_df)] = [models_to_run[index],
                                                model,
-                                               p]+[
+                                               p,
+                                               train_test_set['split_threshold']]+[
 
               metric_at_k(y_test_sorted,y_pred_scores_sorted,1.0,'precision'),
               metric_at_k(y_test_sorted,y_pred_scores_sorted,1.0,'recall'),
@@ -420,11 +422,8 @@ def iterate_over_models(models_to_run, models, parameters_grid, x_train, x_test,
               metric_at_k(y_test_sorted,y_pred_scores_sorted,50.0,'precision'),
               metric_at_k(y_test_sorted,y_pred_scores_sorted,50.0,'recall'),
               metric_at_k(y_test_sorted,y_pred_scores_sorted,50.0,'f1'),
-              roc_auc_score(y_test, y_pred_scores)
+              roc_auc_score(train_test_set['y_test'], y_pred_scores)
               ]
-
-
- 
         except IndexError as e:
             print('Error:',e)
 
