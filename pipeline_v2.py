@@ -339,9 +339,24 @@ def get_models_and_parameters():
     'BA': {'n_estimators': [10,100],'max_features': [1,10]}
     }
     
+
+    test_grid = { 
+    'RF':{'n_estimators': [1], 'max_depth': [1], 'max_features': ['sqrt'],'min_samples_split': [10]},
+    'LR': { 'penalty': ['l1'], 'C': [0.01]},
+    # 'SGD': { 'loss': ['perceptron'], 'penalty': ['l2']},
+    # 'ET': { 'n_estimators': [1], 'criterion' : ['gini'] ,'max_depth': [1], 'max_features': ['sqrt'],'min_samples_split': [10]},
+    # 'AB': { 'algorithm': ['SAMME'], 'n_estimators': [1]},
+    # 'GB': {'n_estimators': [1], 'learning_rate' : [0.1],'subsample' : [0.5], 'max_depth': [1]},
+    # 'NB' : {},
+    'DT': {'criterion': ['gini'], 'max_depth': [1],'min_samples_split': [10]},
+    'SVM' :{'C' :[0.01],'kernel':['linear']},
+    'KNN' :{'n_neighbors': [5],'weights': ['uniform'],'algorithm': ['auto']},
+    'BA': {'n_estimators': [10],'max_features': [1]},
+    'AB': { 'algorithm': ['SAMME'], 'n_estimators': [1]},
+    }
     
     
-    return models, parameters_grid
+    return models, test_grid
 
 
 def joint_sort_descending(l1, l2):
@@ -442,9 +457,12 @@ def iterate_over_models(models_to_run, models, parameters_grid, x_train, x_test,
 
 
 
+            
+
+
             results_df.loc[len(results_df)] = [models_to_run[index],
                                                model,
-                                               p,
+                                               p]+[
 
               metric_at_k(y_test_sorted,y_pred_scores_sorted,1.0,'precision'),
               metric_at_k(y_test_sorted,y_pred_scores_sorted,1.0,'recall'),
