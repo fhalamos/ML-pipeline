@@ -147,7 +147,7 @@ def create_discrete_feature(df, column, ranges, categories, new_column):
 
 
 
-def create_temp_validation_train_and_testing_sets(df, features, data_column, label_column, split_thresholds, test_window):
+def create_temp_validation_train_and_testing_sets(df, features, data_column, label_column, split_thresholds, test_window, gap_training_test):
   '''
   Creates a series of temporal validation train and test sets
   Amount of train/test sets depends on length of split_thresholds
@@ -158,6 +158,7 @@ def create_temp_validation_train_and_testing_sets(df, features, data_column, lab
   features contain features of data
   label_colum indicates which column is the output label
   test_window indicates length of test data
+  gap_training_test indicates necessary distance between training and test data
   '''
 
   #Array to save train and test sets
@@ -172,8 +173,8 @@ def create_temp_validation_train_and_testing_sets(df, features, data_column, lab
 
     #Columns of boolean values indicating if date_posted value is smaller/bigger than threshold
     
-    #Train data is all data before threshold
-    train_filter = (df[data_column] < split_threshold)
+    #Train data is all data before threshold-gap
+    train_filter = (df[data_column] < split_threshold-gap_training_test)
 
     #Test data is all thats test_window time after threshold
     test_filter = (df[data_column] >= split_threshold) & (df[data_column] < split_threshold+test_window)
@@ -291,7 +292,7 @@ def get_models_and_parameters():
     # 'GB': {'n_estimators': [1], 'learning_rate' : [0.1],'subsample' : [0.5], 'max_depth': [1]},
     # 'NB' : {},
     'DT': {'criterion': ['gini'], 'max_depth': [1],'min_samples_split': [10]},
-    'SVM' :{'C' :[0.01],'kernel':['linear']},
+    'SVM' :{'C' :[0.01]},
     'KNN' :{'n_neighbors': [5],'weights': ['uniform'],'algorithm': ['auto']},
     'BA': {'n_estimators': [10],'max_features': [1]},
     'AB': { 'algorithm': ['SAMME'], 'n_estimators': [1]},
