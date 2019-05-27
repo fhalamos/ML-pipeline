@@ -107,45 +107,9 @@ def pre_process_data(df, columns_to_process):
   print ("Done")
   return df
 
-#for each value in 'values', we will find in which bin does it go
-#according to the ranges specified in 'ranges'
-#we return the bin index
-def get_bin(values, ranges):
-  ans =[]
-  for value in values:
-    found_bin=False
-    for i in range(0,len(ranges)):
-      if value < ranges[i]:
-        ans.append(i)
-        found_bin = True
-        break
-
-    if(not found_bin):
-      ans.append(len(ranges))
-
-  return ans
-
-def get_bins_names(vector_indices,categories):
-  ans =[]
-  for i in vector_indices:
-    ans.append(categories[i])
-  return ans
 
 def create_dummies(df, cols_to_transform):
   return pd.get_dummies(df, dummy_na=True, columns = cols_to_transform, drop_first=True)
-
-
-def create_discrete_feature(df, column, ranges, categories, new_column):
-  print ("Creating discrete feature based on continuous variable...")
- 
-  indices = get_bin(df[column],ranges)
-
-  df[new_column] = get_bins_names(indices,categories)
-
-  print ("Done")
-  return df
-
-
 
 def create_temp_validation_train_and_testing_sets(df, features, data_column, label_column, split_thresholds, test_window, gap_training_test):
   '''
@@ -187,71 +151,6 @@ def create_temp_validation_train_and_testing_sets(df, features, data_column, lab
     train_test_sets[index]= train_test_set
 
   return train_test_sets
-
-
-
-def create_binary_feature(df, column, values_for_true_assignment, new_column):
-  print ("Creating binary feature based on categorical variable...")
-
-
-
-
-  col =[]
-
-  for val in df[column]:
-    if val in values_for_true_assignment:
-      col.append(True)
-    else:
-      col.append(False)
-
-  df[new_column] = col
-
-  #Could be optimized using
-  #df[new_column] = np.where(df[column] in values_for_true_assignment, True, False)
-  
-  print ("Done")
-  return df
-
-
-
-def build_classifier(type_classifier, x_train, y_train, params=None):
-  print ("Creating "+type_classifier+ " classifier...")
-
-
-  if(type_classifier=='KNN'):
-    # 'weights': ['uniform','distance']
-    model = KNeighborsClassifier(n_neighbors=params[0], metric=params[1])
-    
-
-  elif(type_classifier=='LogisticRegression'):
-    model = LogisticRegression(random_state=0, solver='liblinear', penalty=params[0], C=params[1])
-
-
-  
-  elif(type_classifier=='SVM'):
-    model = LinearSVC(random_state=0, tol=1e-5, C=params[0])
-
-
-# 'criterion': ['gini', 'entropy'], 'max_depth': [1,5,10,20,50,100],'min_samples_split': [2,5,10]
-  elif(type_classifier=='DecisionTree'):
-    model = DecisionTreeClassifier(random_state=0)
-
-  elif(type_classifier=='RandomForest'):
-    model = RandomForestClassifier(n_estimators=100, max_depth=2, random_state=0)
-  elif(type_classifier=='Bagging'):
-    model = BaggingClassifier(KNeighborsClassifier(), max_samples=0.5, max_features=0.5)
-  elif(type_classifier=='Boosting'):
-    model = AdaBoostClassifier(n_estimators=100)
-
-
-
-
-
-  #Train model
-  model.fit(x_train, y_train)
-
-  print("Done")
-  return model
 
 
 def get_models_and_parameters():
