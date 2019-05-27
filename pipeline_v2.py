@@ -246,6 +246,76 @@ def generate_precision_recall_f1(y_test_sorted,y_pred_scores_sorted, thresholds)
       output_array.append(metric_value)
   return output_array
 
+def plot_precision_recall_n(y_true, y_score, model, parameter_values, train_test_set_id, output_type='save'):
+
+    '''
+    Plot precision recall curves
+    -y_true contains true values
+    -y_score contains predictions
+    -model is the model being run
+    -parameter_values contains parameters used in this model: we will use this for the plot name
+    -output_type: either saving plot or displaying
+    '''
+
+    #Compute precision-recall pairs for different probability thresholds
+    precision_curve, recall_curve, pr_thresholds = precision_recall_curve(y_true, y_score) 
+
+    #The last precision and recall values are 1. and 0 in precision_recall_curve method, now removing them 
+    precision_curve = precision_curve[:-1]
+    recall_curve = recall_curve[:-1]
+
+
+    #We transform the pr_thresholds (which is an array with scores thresholds, to an array of percentage thresholds)
+    pct_above_per_thresh = []
+    number_scored = len(y_score)    
+    for value in pr_thresholds:
+        num_above_thresh = len(y_score[y_score>=value])
+        pct_above_thresh = num_above_thresh / float(number_scored)
+        pct_above_per_thresh.append(pct_above_thresh)
+
+    pct_above_per_thresh = np.array(pct_above_per_thresh)
+    
+    #Clear any existing figure
+    plt.clf()
+
+    #Create a figure and access to its axis
+    fig, ax1 = plt.subplots()
+
+    #Create blue line for precision curve
+    ax1.plot(pct_above_per_thresh, precision_curve, 'b')
+    ax1.set_xlabel('percent of population')
+    ax1.set_ylabel('precision', color='b')
+
+    #Create a duplicate axis, and use it to plot recall curve
+    ax2 = ax1.twinx()
+    ax2.plot(pct_above_per_thresh, recall_curve, 'r')
+    ax2.set_ylabel('recall', color='r')
+ 
+    #Limit axis borders
+    ax1.set_ylim([0,1])
+    ax1.set_xlim([0,1])
+    ax2.set_ylim([0,1])
+    
+    #Set name of plot 
+
+    model_name = str(model).split('(')[0]
+    chosen_params = str(parameter_values)
+
+    plot_name = model_name+'-'+chosen_params+'-train_test set:'+train_test_set_id
+
+    plt.title(plot_name)
+
+
+    #Save or show plot
+    if (output_type == 'save'):
+        plt.savefig('Plots/'+str(plot_name)+'.jpg')
+        plt.close()
+    elif (output_type == 'show'):
+        plt.show()
+
+
+
+
 def iterate_over_models_and_training_test_sets(models_to_run, models, parameters_grid, train_test_sets):
   
   results_df =  pd.DataFrame(columns=(
@@ -312,11 +382,17 @@ def iterate_over_models_and_training_test_sets(models_to_run, models, parameters
 
             roc_auc = roc_auc_score(train_test_set['y_test'], y_pred_scores)
 
+            train_test_identifier = str(train_test_set['id'])+' - '+str(train_test_set['split_threshold']).split(' ')[0]
+
             results_df.loc[len(results_df)] = [models_to_run[index],
                                                model,
                                                p,
-                                               train_test_set['split_threshold']
+                                               train_test_identifier,
                                                ]+prec_rec_f1+[roc_auc]
+            
+            plot_precision_recall_n(train_test_set['y_test'],y_pred_scores,model,parameter_values,str(train_test_set['id']),'save')
+
+
         except IndexError as e:
             print('Error:',e)
 
