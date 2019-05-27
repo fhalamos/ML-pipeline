@@ -198,8 +198,7 @@ def get_models_and_parameters():
     'AB': { 'algorithm': ['SAMME'], 'n_estimators': [1]},
     }
     
-    
-    return models, test_grid
+    return models, parameters_grid
 
 
 def joint_sort_descending(l1, l2):
