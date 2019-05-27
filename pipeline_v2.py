@@ -31,6 +31,8 @@ from dateutil.relativedelta import relativedelta
 
 from sklearn.metrics import precision_recall_curve
 
+import textwrap
+
 pd.options.mode.chained_assignment = None  # default='warn'
 
 # import warnings filter
@@ -197,7 +199,7 @@ def get_models_and_parameters():
     }
     
     
-    return models, parameters_grid
+    return models, test_grid
 
 
 def joint_sort_descending(l1, l2):
@@ -296,14 +298,15 @@ def plot_precision_recall_n(y_true, y_score, model, parameter_values, train_test
     ax2.set_ylim([0,1])
     
     #Set name of plot 
-
     model_name = str(model).split('(')[0]
     chosen_params = str(parameter_values)
-
     plot_name = model_name+'-'+chosen_params+'-train_test set:'+train_test_set_id
 
-    plt.title(plot_name)
 
+    #Set title and position in plot
+    title = ax1.set_title(textwrap.fill(plot_name, 70))
+    fig.tight_layout()
+    fig.subplots_adjust(top=0.75)    
 
     #Save or show plot
     if (output_type == 'save'):
@@ -311,8 +314,6 @@ def plot_precision_recall_n(y_true, y_score, model, parameter_values, train_test
     elif (output_type == 'show'):
         plt.show()
     plt.close()
-
-
 
 
 def iterate_over_models_and_training_test_sets(models_to_run, models, parameters_grid, train_test_sets):
