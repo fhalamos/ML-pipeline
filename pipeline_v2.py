@@ -336,6 +336,16 @@ def metric_at_k(y_true, y_scores, k, metric):
 
     return metric
 
+def generate_precision_recall_f1(y_test_sorted,y_pred_scores_sorted, thresholds):
+  metrics = ['precision', 'recall', 'f1']
+
+  output_array=[]
+
+  for threshold in thresholds:
+    for metric in metrics:
+      metric_value = metric_at_k(y_test_sorted,y_pred_scores_sorted,threshold,metric)
+      output_array.append(metric_value)
+  return output_array
 
 def iterate_over_models_and_training_test_sets(models_to_run, models, parameters_grid, train_test_sets):
   
@@ -397,34 +407,17 @@ def iterate_over_models_and_training_test_sets(models_to_run, models, parameters
             #Sort according to y_pred_scores, keeping map to their y_test values
             y_pred_scores_sorted, y_test_sorted = zip(*sorted(zip(y_pred_scores, train_test_set['y_test']), reverse=True))
 
+
+            thresholds = [1,2,5,10,20,30,50]
+            prec_rec_f1 = generate_precision_recall_f1(y_test_sorted,y_pred_scores_sorted, thresholds)
+
+            roc_auc = roc_auc_score(train_test_set['y_test'], y_pred_scores)
+
             results_df.loc[len(results_df)] = [models_to_run[index],
                                                model,
                                                p,
-                                               train_test_set['split_threshold']]+[
-
-              metric_at_k(y_test_sorted,y_pred_scores_sorted,1.0,'precision'),
-              metric_at_k(y_test_sorted,y_pred_scores_sorted,1.0,'recall'),
-              metric_at_k(y_test_sorted,y_pred_scores_sorted,1.0,'f1'),
-              metric_at_k(y_test_sorted,y_pred_scores_sorted,2.0,'precision'),
-              metric_at_k(y_test_sorted,y_pred_scores_sorted,2.0,'recall'),
-              metric_at_k(y_test_sorted,y_pred_scores_sorted,2.0,'f1'),
-              metric_at_k(y_test_sorted,y_pred_scores_sorted,5.0,'precision'),
-              metric_at_k(y_test_sorted,y_pred_scores_sorted,5.0,'recall'),
-              metric_at_k(y_test_sorted,y_pred_scores_sorted,5.0,'f1'),
-              metric_at_k(y_test_sorted,y_pred_scores_sorted,10.0,'precision'),
-              metric_at_k(y_test_sorted,y_pred_scores_sorted,10.0,'recall'),
-              metric_at_k(y_test_sorted,y_pred_scores_sorted,10.0,'f1'),
-              metric_at_k(y_test_sorted,y_pred_scores_sorted,20.0,'precision'),
-              metric_at_k(y_test_sorted,y_pred_scores_sorted,20.0,'recall'),
-              metric_at_k(y_test_sorted,y_pred_scores_sorted,20.0,'f1'),
-              metric_at_k(y_test_sorted,y_pred_scores_sorted,30.0,'precision'),
-              metric_at_k(y_test_sorted,y_pred_scores_sorted,30.0,'recall'),
-              metric_at_k(y_test_sorted,y_pred_scores_sorted,30.0,'f1'),
-              metric_at_k(y_test_sorted,y_pred_scores_sorted,50.0,'precision'),
-              metric_at_k(y_test_sorted,y_pred_scores_sorted,50.0,'recall'),
-              metric_at_k(y_test_sorted,y_pred_scores_sorted,50.0,'f1'),
-              roc_auc_score(train_test_set['y_test'], y_pred_scores)
-              ]
+                                               train_test_set['split_threshold']
+                                               ]+prec_rec_f1+[roc_auc]
         except IndexError as e:
             print('Error:',e)
 
