@@ -132,7 +132,6 @@ def create_temp_validation_train_and_testing_sets(df, features, data_column, lab
   for index, split_threshold in enumerate(split_thresholds):
 
     train_test_set={}
-    train_test_set['id']=index
     train_test_set['split_threshold']=split_threshold
 
     #Columns of boolean values indicating if date_posted value is smaller/bigger than threshold
@@ -198,7 +197,7 @@ def get_models_and_parameters():
     }
     
     
-    return models, test_grid
+    return models, parameters_grid
 
 
 def joint_sort_descending(l1, l2):
@@ -309,9 +308,9 @@ def plot_precision_recall_n(y_true, y_score, model, parameter_values, train_test
     #Save or show plot
     if (output_type == 'save'):
         plt.savefig('Plots/'+str(plot_name)+'.jpg')
-        plt.close()
     elif (output_type == 'show'):
         plt.show()
+    plt.close()
 
 
 
@@ -351,10 +350,12 @@ def iterate_over_models_and_training_test_sets(models_to_run, models, parameters
 
   # For each of our models
     for index,model in enumerate([models[x] for x in models_to_run]):
-      print("Running "+str(models_to_run[index])+"...")
-      
+
       #Get all possible parameters for the current model
       parameter_values = parameters_grid[models_to_run[index]]
+
+      print("Running "+str(models_to_run[index])+" with params: "+str(parameter_values) +" on train/test set "+str(train_test_set['split_threshold']))
+      
 
       #For every combination of parameters
       for p in ParameterGrid(parameter_values):
@@ -382,7 +383,7 @@ def iterate_over_models_and_training_test_sets(models_to_run, models, parameters
 
             roc_auc = roc_auc_score(train_test_set['y_test'], y_pred_scores)
 
-            train_test_identifier = str(train_test_set['id'])+' - '+str(train_test_set['split_threshold']).split(' ')[0]
+            train_test_identifier = str(train_test_set['split_threshold']).split(' ')[0]
 
             results_df.loc[len(results_df)] = [models_to_run[index],
                                                model,
@@ -390,7 +391,7 @@ def iterate_over_models_and_training_test_sets(models_to_run, models, parameters
                                                train_test_identifier,
                                                ]+prec_rec_f1+[roc_auc]
             
-            plot_precision_recall_n(train_test_set['y_test'],y_pred_scores,model,parameter_values,str(train_test_set['id']),'save')
+            plot_precision_recall_n(train_test_set['y_test'],y_pred_scores,model,parameter_values,str(train_test_set['split_threshold']),'save')
 
 
         except IndexError as e:
