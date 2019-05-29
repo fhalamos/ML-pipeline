@@ -380,11 +380,11 @@ def iterate_over_models_and_training_test_sets(models_to_run, models, parameters
             y_pred_scores_sorted, y_test_sorted = zip(*sorted(zip(y_pred_scores, train_test_set['y_test']), reverse=True))
 
 
-            thresholds = [1,2,5,10,20,30,50]
+            thresholds_for_metrics = [1,2,5,10,20,30,50]
 
             baseline = metric_at_k(y_test_sorted,y_pred_scores_sorted,100,'precision')
 
-            prec_rec_f1 = generate_precision_recall_f1(y_test_sorted,y_pred_scores_sorted, thresholds)
+            prec_rec_f1 = generate_precision_recall_f1(y_test_sorted,y_pred_scores_sorted, thresholds_for_metrics)
 
             roc_auc = roc_auc_score(train_test_set['y_test'], y_pred_scores)
 
