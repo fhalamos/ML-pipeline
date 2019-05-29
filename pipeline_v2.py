@@ -356,7 +356,7 @@ def iterate_over_models_and_training_test_sets(models_to_run, models, parameters
       #Get all possible parameters for the current model
       parameter_values = parameters_grid[models_to_run[index]]
 
-      print("Running "+str(models_to_run[index])+" with params: "+str(parameter_values) +" on train/test set "+str(train_test_set['test_set_start_date']))
+      #print("Running "+str(models_to_run[index])+" with params: "+str(parameter_values) +" on train/test set "+str(train_test_set['test_set_start_date']))
       
 
       #For every combination of parameters
