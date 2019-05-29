@@ -198,7 +198,7 @@ def get_models_and_parameters():
     'AB': { 'algorithm': ['SAMME'], 'n_estimators': [1]},
     }
     
-    return models, parameters_grid
+    return models, test_grid
 
 
 def joint_sort_descending(l1, l2):
@@ -309,7 +309,7 @@ def plot_precision_recall_n(y_true, y_score, model, parameter_values, train_test
 
     #Save or show plot
     if (output_type == 'save'):
-        plt.savefig('Plots/'+str(plot_name)+'.jpg')
+        plt.savefig('Plots/'+str(plot_name)+'.png')
     elif (output_type == 'show'):
         plt.show()
     plt.close()
@@ -322,6 +322,7 @@ def iterate_over_models_and_training_test_sets(models_to_run, models, parameters
     'model',
     'parameters',
     'train_test_split_threshold',
+    'baseline',
     'p_at_1',
     'r_at_1',
     'f1_at_1',
@@ -379,6 +380,9 @@ def iterate_over_models_and_training_test_sets(models_to_run, models, parameters
 
 
             thresholds = [1,2,5,10,20,30,50]
+
+            baseline = metric_at_k(y_test_sorted,y_pred_scores_sorted,100,'precision')
+
             prec_rec_f1 = generate_precision_recall_f1(y_test_sorted,y_pred_scores_sorted, thresholds)
 
             roc_auc = roc_auc_score(train_test_set['y_test'], y_pred_scores)
@@ -389,6 +393,7 @@ def iterate_over_models_and_training_test_sets(models_to_run, models, parameters
                                                model,
                                                p,
                                                train_test_identifier,
+                                               baseline
                                                ]+prec_rec_f1+[roc_auc]
             
             plot_precision_recall_n(train_test_set['y_test'],y_pred_scores,model,parameter_values,str(train_test_set['split_threshold']),'save')
