@@ -6,30 +6,23 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-
-from sklearn.model_selection import train_test_split
+# from sklearn.model_selection import train_test_split
 
 from sklearn.linear_model import LogisticRegression
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.svm import LinearSVC
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.ensemble import BaggingClassifier
-from sklearn.ensemble import AdaBoostClassifier
-from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.ensemble import RandomForestClassifier, ExtraTreesClassifier, BaggingClassifier, AdaBoostClassifier, GradientBoostingClassifier
+from sklearn.naive_bayes import GaussianNB
 
 from sklearn.model_selection import ParameterGrid
 
-from sklearn.metrics import classification_report
-
-from sklearn.metrics import accuracy_score as accuracy
-
 from sklearn.metrics import *
+# from sklearn.metrics import classification_report
+# from sklearn.metrics import precision_recall_curve
 
 from datetime import date, datetime, timedelta
 from dateutil.relativedelta import relativedelta
-
-from sklearn.metrics import precision_recall_curve
 
 import textwrap
 
@@ -157,45 +150,53 @@ def create_temp_validation_train_and_testing_sets(df, features, data_column, lab
 def get_models_and_parameters():
 
     models = {
-        'KNN': KNeighborsClassifier(n_neighbors=3),
-        'DT': DecisionTreeClassifier(random_state=0),
 
-        'LR': LogisticRegression(penalty='l1', C=1),
-        'SVM': LinearSVC(random_state=0, tol=1e-5, C=1, max_iter=10000.),
+      'DT': DecisionTreeClassifier(random_state=0),
+      'LR': LogisticRegression(penalty='l1', C=1),
+      'RF': RandomForestClassifier(n_estimators=100, max_depth=2, random_state=0),
 
-        'AB': AdaBoostClassifier(n_estimators=100),
-        'RF': RandomForestClassifier(n_estimators=100, max_depth=2, random_state=0),
-        'BA': BaggingClassifier(KNeighborsClassifier(),n_estimators=10)
-
-        # 'GB': GradientBoostingClassifier(learning_rate=0.05, subsample=0.5, max_depth=6, n_estimators=10), 
-      }
+      'BA': BaggingClassifier(KNeighborsClassifier(),n_estimators=10),
+      'AB': AdaBoostClassifier(n_estimators=100),
+      'GB': GradientBoostingClassifier(learning_rate=0.05, subsample=0.5, max_depth=6, n_estimators=10),
+      'ET': ExtraTreesClassifier(n_estimators=10, n_jobs=-1, criterion='entropy'),
+      
+      'SVM': LinearSVC(random_state=0, tol=1e-5, C=1, max_iter=10000),
+      'KNN': KNeighborsClassifier(n_neighbors=3),
+      'NB': GaussianNB()
+    }
 
     parameters_grid = { 
-    'KNN': {'n_neighbors': [3,5,10,50,100],'weights': ['uniform','distance'],'algorithm': ['auto','ball_tree']},
-    'DT': {'criterion': ['gini', 'entropy'], 'max_depth': [1,5,10,50,100],'min_samples_split': [2,5]},
+  
+      'DT': {'criterion': ['gini', 'entropy'], 'max_depth': [1,5,10,50,100],'min_samples_split': [2,5]},
+      'LR': { 'penalty': ['l1','l2'], 'C': [0.001,0.1,1,10]},
+      'RF': {'n_estimators': [10,100], 'max_depth': [5,50], 'max_features': ['sqrt','log2'],'min_samples_split': [2,10], 'n_jobs': [-1]},
 
-    'LR': { 'penalty': ['l1','l2'], 'C': [0.001,0.1,1,10]},
-    'SVM': {'C' :[10**-2, 10**-1, 1 , 10, 10**2]}, #[10**-2, 10**-1, 1 , 10, 10**2]
+      'BA': {'n_estimators': [10,100],'max_features': [1,10]},
+      'AB': { 'algorithm': ['SAMME', 'SAMME.R'], 'n_estimators': [1,10,100]},
+      'GB': {'n_estimators': [100, 10000], 'learning_rate' : [0.001,0.1,0.5],'subsample' : [0.1,0.5,1.0], 'max_depth': [5,50]},
+      'ET': { 'n_estimators': [1,10,100,1000,10000], 'criterion' : ['gini', 'entropy'] ,'max_depth': [1,5,10,20,50,100], 'max_features': ['sqrt','log2'],'min_samples_split': [2,5,10], 'n_jobs': [-1]},
 
-    'AB': { 'algorithm': ['SAMME', 'SAMME.R'], 'n_estimators': [1,10,100]},
-    'RF': {'n_estimators': [10,100], 'max_depth': [5,50], 'max_features': ['sqrt','log2'],'min_samples_split': [2,10], 'n_jobs': [-1]},
-    'BA': {'n_estimators': [10,100],'max_features': [1,10]}
+      'SVM': {'C' :[10**-2, 10**-1, 1 , 10, 10**2]}, 
+      'KNN': {'n_neighbors': [3,5,10,50,100],'weights': ['uniform','distance'],'algorithm': ['auto','ball_tree']},
+      'NB' : {}
     }
     
 
     test_grid = { 
-    'RF':{'n_estimators': [1], 'max_depth': [1], 'max_features': ['sqrt'],'min_samples_split': [10]},
-    'LR': { 'penalty': ['l1'], 'C': [0.01]},
-    # 'SGD': { 'loss': ['perceptron'], 'penalty': ['l2']},
-    # 'ET': { 'n_estimators': [1], 'criterion' : ['gini'] ,'max_depth': [1], 'max_features': ['sqrt'],'min_samples_split': [10]},
-    # 'AB': { 'algorithm': ['SAMME'], 'n_estimators': [1]},
-    # 'GB': {'n_estimators': [1], 'learning_rate' : [0.1],'subsample' : [0.5], 'max_depth': [1]},
-    # 'NB' : {},
-    'DT': {'criterion': ['gini'], 'max_depth': [1],'min_samples_split': [10]},
-    'SVM' :{'C' :[0.01]},
-    'KNN' :{'n_neighbors': [5],'weights': ['uniform'],'algorithm': ['auto']},
-    'BA': {'n_estimators': [10],'max_features': [1]},
-    'AB': { 'algorithm': ['SAMME'], 'n_estimators': [1]},
+
+      'DT': {'criterion': ['gini'], 'max_depth': [1],'min_samples_split': [10]},
+      'LR': { 'penalty': ['l1'], 'C': [0.01]},
+      'RF':{'n_estimators': [1], 'max_depth': [1], 'max_features': ['sqrt'],'min_samples_split': [10]},
+
+      'BA': {'n_estimators': [10],'max_features': [1]},
+      'AB': { 'algorithm': ['SAMME'], 'n_estimators': [1]},
+      'GB': {'n_estimators': [1], 'learning_rate' : [0.1],'subsample' : [0.5], 'max_depth': [1]},
+      'ET': { 'n_estimators': [1], 'criterion' : ['gini'] ,'max_depth': [1], 'max_features': ['sqrt'],'min_samples_split': [10]},
+
+      'SVM' :{'C' :[0.01]},
+      'KNN' :{'n_neighbors': [5],'weights': ['uniform'],'algorithm': ['auto']},
+      'NB' : {}
+
     }
     
     return models, test_grid
