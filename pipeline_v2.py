@@ -106,10 +106,10 @@ def pre_process_data(df, columns_to_process):
 def create_dummies(df, cols_to_transform):
   return pd.get_dummies(df, dummy_na=True, columns = cols_to_transform, drop_first=True)
 
-def create_temp_validation_train_and_testing_sets(df, features, data_column, label_column, split_thresholds, test_window, gap_training_test):
+def create_temp_validation_train_and_testing_sets(df, features, data_column, label_column, split_thresholds, test_window, gap_window):
   '''
   Creates a series of temporal validation train and test sets
-  Amount of train/test sets depends on length of split_thresholds
+  Amount of train/test sets depends on length of split_thresholds array
   
   Training and test set are delimited by the split_thresholds
   data_column indicates which column of dataframe (df) shall be used to compare with split_threshold value
@@ -117,7 +117,7 @@ def create_temp_validation_train_and_testing_sets(df, features, data_column, lab
   features contain features of data
   label_colum indicates which column is the output label
   test_window indicates length of test data
-  gap_training_test indicates necessary distance between training and test data
+  gap_window indicates necessary time we need for train and test data to look at outcome (do not include data whose date_posted is in gap time hence)
   '''
 
   #Array to save train and test sets
@@ -127,15 +127,15 @@ def create_temp_validation_train_and_testing_sets(df, features, data_column, lab
   for index, split_threshold in enumerate(split_thresholds):
 
     train_test_set={}
-    train_test_set['split_threshold']=split_threshold
+    train_test_set['test_set_start_date']=split_threshold
 
     #Columns of boolean values indicating if date_posted value is smaller/bigger than threshold
     
     #Train data is all data before threshold-gap
-    train_filter = (df[data_column] < split_threshold-gap_training_test)
+    train_filter = (df[data_column] < split_threshold-gap_window)
 
-    #Test data is all thats test_window time after threshold
-    test_filter = (df[data_column] >= split_threshold) & (df[data_column] < split_threshold+test_window)
+    #Test data is all data thats after training data(after split_threshold), but only consider a length of test_window time, - necessary gap to see all outcomes.
+    test_filter = (df[data_column] >= split_threshold) & (df[data_column] < split_threshold+test_window-gap_window)
     
     train_test_set['x_train'] = features[train_filter]
     train_test_set['y_train'] = df[label_column][train_filter]
@@ -247,7 +247,7 @@ def generate_precision_recall_f1(y_test_sorted,y_pred_scores_sorted, thresholds)
       output_array.append(metric_value)
   return output_array
 
-def plot_precision_recall_n(y_true, y_score, model, parameter_values, train_test_set_id, output_type='save'):
+def plot_precision_recall_n(y_true, y_score, model, parameter_values, test_set_start_date, output_type='save'):
 
     '''
     Plot precision recall curves
@@ -300,7 +300,7 @@ def plot_precision_recall_n(y_true, y_score, model, parameter_values, train_test
     #Set name of plot 
     model_name = str(model).split('(')[0]
     chosen_params = str(parameter_values)
-    plot_name = model_name+'-'+chosen_params+'-train_test set:'+train_test_set_id
+    plot_name = model_name+'-'+chosen_params+'-test_set_start_date:'+test_set_start_date
 
 
     #Set title and position in plot
@@ -322,7 +322,7 @@ def iterate_over_models_and_training_test_sets(models_to_run, models, parameters
     'model_name',
     'model',
     'parameters',
-    'train_test_split_threshold',
+    'test_set_start_date',
     'baseline',
     'p_at_1',
     'r_at_1',
@@ -356,7 +356,7 @@ def iterate_over_models_and_training_test_sets(models_to_run, models, parameters
       #Get all possible parameters for the current model
       parameter_values = parameters_grid[models_to_run[index]]
 
-      print("Running "+str(models_to_run[index])+" with params: "+str(parameter_values) +" on train/test set "+str(train_test_set['split_threshold']))
+      print("Running "+str(models_to_run[index])+" with params: "+str(parameter_values) +" on train/test set "+str(train_test_set['test_set_start_date']))
       
 
       #For every combination of parameters
@@ -388,16 +388,16 @@ def iterate_over_models_and_training_test_sets(models_to_run, models, parameters
 
             roc_auc = roc_auc_score(train_test_set['y_test'], y_pred_scores)
 
-            train_test_identifier = str(train_test_set['split_threshold']).split(' ')[0]
+            test_set_identifier = str(train_test_set['test_set_start_date']).split(' ')[0]
 
             results_df.loc[len(results_df)] = [models_to_run[index],
                                                model,
                                                p,
-                                               train_test_identifier,
+                                               test_set_identifier,
                                                baseline
                                                ]+prec_rec_f1+[roc_auc]
             
-            plot_precision_recall_n(train_test_set['y_test'],y_pred_scores,model,p,str(train_test_set['split_threshold']),'save')
+            plot_precision_recall_n(train_test_set['y_test'],y_pred_scores,model,p,str(train_test_set['test_set_start_date']),'save')
 
 
         except IndexError as e:
