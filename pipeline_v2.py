@@ -396,7 +396,7 @@ def iterate_over_models_and_training_test_sets(models_to_run, models, parameters
                                                baseline
                                                ]+prec_rec_f1+[roc_auc]
             
-            plot_precision_recall_n(train_test_set['y_test'],y_pred_scores,model,parameter_values,str(train_test_set['split_threshold']),'save')
+            plot_precision_recall_n(train_test_set['y_test'],y_pred_scores,model,p,str(train_test_set['split_threshold']),'save')
 
 
         except IndexError as e:
