@@ -78,35 +78,110 @@ def explore_data(df, selected_variables, var_for_corr):
   print(df[var_for_corr[0]].corr(df[var_for_corr[1]]))
 
 #Filling in missing values with mean
-def pre_process_data(df, columns_to_process):
-  print ("Pre processing data...")
-
-  #Get average of each column
-  averages={}
-  for column in columns_to_process:
-    averages[column] = df[column].mean()
-
-
-  #Replace missing values with averages
-  for index, row in df.iterrows():
-    for column in columns_to_process:
-      if(pd.isna(row[column])):
-        #this line could be tider
-        df.iloc[index,df.columns.get_loc(column)]=averages[column]
-
-  for index, row in df.iterrows():
-    for column in columns_to_process:
-      if(pd.isna(row[column])):
-        print("error")
-
-  print ("Done")
+def fill_na_columns_with_mean(df, columns_to_process):
+  for col in columns_to_process:
+        df[col].fillna(df[col].median(), inplace=True)  
   return df
 
 
 def create_dummies(df, cols_to_transform):
   return pd.get_dummies(df, dummy_na=True, columns = cols_to_transform, drop_first=True)
 
-def create_temp_validation_train_and_testing_sets(df, features, data_column, label_column, split_thresholds, test_window, gap_window):
+
+
+def create_feature_number_of_projects_funded_in_last_10_days(data,x_train_data, x_test_data, train_features, test_features):
+  #List of all dates where projects have been posted
+  date_posted_list = pd.to_datetime(data['date_posted'].unique())
+
+  #We use a dictionary to save the amount of projects that have been funded within the last 10 days in each specific day
+  num_projects_funded_dict = {}
+
+  #For every possible date_posted
+  for date_posted in date_posted_list:
+    #For each project, we calculate the difference between the current observed date and the project funded date
+    #Lets remember that the difference between a value (date_posted) and a series (data['datefullyfunded']) is a series
+    diff_date_and_fully_funded = date_posted - data['datefullyfunded']
+
+    #Count how many projects have a difference between fully funded date and current date bigger than 0 and smaller or equal than 10
+    amount_funded_in_last_10_days = np.sum((diff_date_and_fully_funded>pd.Timedelta('0 days')) & (diff_date_and_fully_funded<=pd.Timedelta('10 days')))
+
+    #Save the amount in dictionary
+    num_projects_funded_dict[date_posted.strftime("%Y%m%d")]= amount_funded_in_last_10_days
+
+
+  #We create the column to be attached, initially full of zeros for each row in the respective dataframe
+  #Then attach it to the features list
+  for (data_set, features_set) in [(x_train_data, train_features), (x_test_data, test_features)]:
+      num_of_projects_funded_10_days = np.zeros(len(data_set))
+      for i in range(len(data_set)):
+          num_of_projects_funded_10_days[i] = num_projects_funded_dict[data_set.iloc[i]['date_posted'].strftime("%Y%m%d")]
+      features_set['num_of_projects_funded_10_days']=num_of_projects_funded_10_days
+
+  return (train_features, test_features)
+
+
+def create_month_year_features(x_train_data, x_test_data, train_features, test_features):
+
+  train_features['year'] = pd.DatetimeIndex(x_train_data['date_posted']).year
+  train_features['month'] = pd.DatetimeIndex(x_train_data['date_posted']).month
+  test_features['year'] = pd.DatetimeIndex(x_test_data['date_posted']).year
+  test_features['month'] = pd.DatetimeIndex(x_test_data['date_posted']).month
+
+  return (train_features, test_features)
+
+def create_discrete_features(x_train_data, x_test_data, train_features, test_features, float_columns):
+  '''
+  We create discrete features based for the selected float_columns.
+  Parameters are raw data on train and test set, as well as already created features.
+  Return train and test features.
+  '''
+
+  #Columns with float values to generate discrete features. Choose only columns with significant outliers
+  float_columns_for_discretization = [column for column in float_columns if (x_train_data[column].max()-x_train_data[column].mean())/x_train_data[column].std()>4]
+
+  for float_column in float_columns_for_discretization:
+      #We use qcut instead of cut because of outliers (if not, in case of high outlieres, almost all datapoints end up in lowest bin and none in the middle ones)
+      train_features[float_column+'_discrete'], bins = pd.qcut(x_train_data[float_column], 5, labels=['low', 'medium low', 'medium', 'medium high', 'high'], retbins=True)
+      
+      #Use same bins of train to discretize on test
+      test_features[float_column+'_discrete'] = pd.cut(x_test_data[float_column], bins=bins, labels=['low', 'medium low', 'medium', 'medium high', 'high'], include_lowest=True)
+
+
+  #Name of the columns for the discrete values in the features df
+  discrete_columns_names = [float_column + '_discrete' for float_column in float_columns_for_discretization]
+
+  #Generate binary features for the new discretized columns. Again filter test binaries to select only those that are in training 
+  train_features = create_dummies(train_features, discrete_columns_names)
+  test_features = create_dummies(test_features, discrete_columns_names)[train_features.columns]
+
+  return (train_features, test_features)
+
+
+def create_dummys_for_categorical_data(x_train_data,x_test_data):
+  '''
+  For features data on both train and test sets, we programatically select categorical variables and create dummys for them. Return train and test features.
+  '''
+
+
+  #Select columns from which we will create binary features. We use string columns who have less than 50 different values (we dont want to generate too many binary values)
+  str_columns = [column for column in x_train_data.columns if x_train_data[column].dtype=='object' and len(x_train_data[column].unique())<51]
+
+  #Generate the binary features in train set
+  train_features = create_dummies(x_train_data[str_columns], str_columns)
+  
+  #Generate binary features in test set. For that
+  #filter them by the ones existing in train
+  #Third, check if any of the existing dummies generated in train where not created in test. If so, generate them and fill them with zeros
+
+  test_features = create_dummies(x_test_data[str_columns], str_columns)[train_features.columns]
+  dummy_na=True
+  for dummy_generated_in_train in train_features.columns:
+      if dummy_generated_in_train not in test_features.columns:
+          test_features[dummy_generated_in_train]=0
+
+  return (train_features, test_features)
+
+def create_temp_validation_train_and_testing_sets(df, data_column, label_column, split_thresholds, test_window, gap_window):
   '''
   Creates a series of temporal validation train and test sets
   Amount of train/test sets depends on length of split_thresholds array
@@ -137,9 +212,9 @@ def create_temp_validation_train_and_testing_sets(df, features, data_column, lab
     #Test data is all data thats after training data(after split_threshold), but only consider a length of test_window time, - necessary gap to see all outcomes.
     test_filter = (df[data_column] >= split_threshold) & (df[data_column] < split_threshold+test_window-gap_window)
     
-    train_test_set['x_train'] = features[train_filter]
+    train_test_set['x_train'] = df[train_filter]
     train_test_set['y_train'] = df[label_column][train_filter]
-    train_test_set['x_test'] = features[test_filter] 
+    train_test_set['x_test'] = df[test_filter] 
     train_test_set['y_test'] = df[label_column][test_filter]
     
     train_test_sets[index]= train_test_set
@@ -167,14 +242,14 @@ def get_models_and_parameters():
 
     parameters_grid = { 
   
-      'DT': {'criterion': ['gini', 'entropy'], 'max_depth': [1,5,10,50,100],'min_samples_split': [2,5]},
+      'DT': {'criterion': ['gini', 'entropy'], 'max_depth': [2,5,10,50,100],'min_samples_split': [2,5]},
       'LR': { 'penalty': ['l1','l2'], 'C': [0.001,0.1,1,10]},
       'RF': {'n_estimators': [10,100], 'max_depth': [5,50], 'max_features': ['sqrt','log2'],'min_samples_split': [2,10], 'n_jobs': [-1]},
 
       'BA': {'n_estimators': [10,100],'max_features': [1,10]},
       'AB': { 'algorithm': ['SAMME', 'SAMME.R'], 'n_estimators': [1,10,100]},
       'GB': {'n_estimators': [100, 10000], 'learning_rate' : [0.001,0.1,0.5],'subsample' : [0.1,0.5,1.0], 'max_depth': [5,50]},
-      'ET': { 'n_estimators': [1,10,100,1000,10000], 'criterion' : ['gini', 'entropy'] ,'max_depth': [1,5,10,20,50,100], 'max_features': ['sqrt','log2'],'min_samples_split': [2,5,10], 'n_jobs': [-1]},
+      'ET': { 'n_estimators': [1,10,100,1000,10000], 'criterion' : ['gini', 'entropy'] ,'max_depth': [2,5,10,20,50,100], 'max_features': ['sqrt','log2'],'min_samples_split': [2,5,10], 'n_jobs': [-1]},
 
       'SVM': {'C' :[10**-2, 10**-1, 1 , 10, 10**2]}, 
       'KNN': {'n_neighbors': [3,5,10,50,100],'weights': ['uniform','distance'],'algorithm': ['auto','ball_tree']},
