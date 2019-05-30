@@ -33,6 +33,7 @@ from warnings import simplefilter
 # ignore all future warnings
 simplefilter(action='ignore', category=FutureWarning)
 
+import datetime
 
 def read_csv(url):
   print ("Reading file...")
@@ -249,7 +250,7 @@ def get_models_and_parameters():
       'BA': {'n_estimators': [10,100],'max_features': [1,10]},
       'AB': { 'algorithm': ['SAMME', 'SAMME.R'], 'n_estimators': [1,10,100]},
       'GB': {'n_estimators': [100, 10000], 'learning_rate' : [0.001,0.1,0.5],'subsample' : [0.1,0.5,1.0], 'max_depth': [5,50]},
-      'ET': { 'n_estimators': [1,10,100,1000,10000], 'criterion' : ['gini', 'entropy'] ,'max_depth': [2,5,10,20,50,100], 'max_features': ['sqrt','log2'],'min_samples_split': [2,5,10], 'n_jobs': [-1]},
+      'ET': { 'n_estimators': [1,100,1000], 'criterion' : ['gini', 'entropy'] ,'max_depth': [2,5,10,50], 'max_features': ['sqrt','log2']},
 
       'SVM': {'C' :[10**-2, 10**-1, 1 , 10, 10**2]}, 
       'KNN': {'n_neighbors': [3,5,10,50,100],'weights': ['uniform','distance'],'algorithm': ['auto','ball_tree']},
@@ -274,7 +275,7 @@ def get_models_and_parameters():
 
     }
     
-    return models, test_grid
+    return models, parameters_grid
 
 
 def joint_sort_descending(l1, l2):
@@ -431,11 +432,9 @@ def iterate_over_models_and_training_test_sets(models_to_run, models, parameters
       #Get all possible parameters for the current model
       parameter_values = parameters_grid[models_to_run[index]]
 
-      #print("Running "+str(models_to_run[index])+" with params: "+str(parameter_values) +" on train/test set "+str(train_test_set['test_set_start_date']))
-      
-
       #For every combination of parameters
       for p in ParameterGrid(parameter_values):
+        print(str(datetime.datetime.now())+": Running "+str(models_to_run[index])+" with params: "+str(p) +" on train/test set "+str(train_test_set['test_set_start_date']))  
         try:
             #Set parameters to the model. ** alows us to use keyword arguments
             model.set_params(**p)
