@@ -223,6 +223,23 @@ def create_temp_validation_train_and_testing_sets(df, data_column, label_column,
   return train_test_sets
 
 
+def get_best_models_of_each_type_for_each_train_test_set(models_to_run,results,train_test_set_column_identifier, metric_criteria):
+  #In this dataframe we will save the best model for each type of model (ex 1 LR, 1 RF..), whichever perfomed the best in each train/test set
+  best_models= pd.DataFrame()
+
+  for model in models_to_run:
+    #Filter data selecting only rows of this specific modelpd.to_numeric(
+    results_of_model = results[results["model_name"]==model]  
+    #For each train/test set, find index of best model (parameters)
+    idx = results_of_model.groupby([train_test_set_column_identifier])[metric_criteria].transform(max) == results_of_model[metric_criteria]
+      
+    #Grab those results based on index
+    best_model = results_of_model[idx]
+    #Append it to final list
+    best_models=best_models.append(best_model)
+
+  return best_models
+
 def get_models_and_parameters():
 
     models = {
@@ -232,8 +249,8 @@ def get_models_and_parameters():
       'RF': RandomForestClassifier(n_estimators=100, max_depth=2, random_state=0),
 
       'BA': BaggingClassifier(KNeighborsClassifier(),n_estimators=10),
-      'AB': AdaBoostClassifier(n_estimators=100),
-      'GB': GradientBoostingClassifier(learning_rate=0.05, subsample=0.5, max_depth=6, n_estimators=10),
+      'AB': AdaBoostClassifier(n_estimators=50),
+      'GB': GradientBoostingClassifier(learning_rate=0.05, n_estimators=10, subsample=0.5),
       'ET': ExtraTreesClassifier(n_estimators=10, n_jobs=-1, criterion='entropy'),
       
       'SVM': LinearSVC(random_state=0, tol=1e-5, C=1, max_iter=10000),
@@ -248,9 +265,9 @@ def get_models_and_parameters():
       'RF': {'n_estimators': [10,100], 'max_depth': [5,50], 'max_features': ['sqrt','log2'],'min_samples_split': [2,10], 'n_jobs': [-1]},
 
       'BA': {'n_estimators': [10,100],'max_features': [1,10]},
-      'AB': { 'algorithm': ['SAMME', 'SAMME.R'], 'n_estimators': [1,10,100]},
-      'GB': {'n_estimators': [100, 10000], 'learning_rate' : [0.001,0.1,0.5],'subsample' : [0.1,0.5,1.0], 'max_depth': [5,50]},
-      'ET': { 'n_estimators': [1,100,1000], 'criterion' : ['gini', 'entropy'] ,'max_depth': [2,5,10,50], 'max_features': ['sqrt','log2']},
+      'AB': { 'algorithm': ['SAMME', 'SAMME.R'], 'n_estimators': [10,100]},
+      'GB': {'n_estimators': [10,100], 'learning_rate' : [0.001,0.1],'subsample' : [0.1,1.0]},
+      'ET': { 'n_estimators': [100,1000], 'criterion' : ['gini', 'entropy'] ,'max_depth': [2,5,50]},
 
       'SVM': {'C' :[10**-2, 10**-1, 1 , 10, 10**2]}, 
       'KNN': {'n_neighbors': [3,5,10,50,100],'weights': ['uniform','distance'],'algorithm': ['auto','ball_tree']},
@@ -277,6 +294,29 @@ def get_models_and_parameters():
     
     return models, parameters_grid
 
+
+def plot_models_in_time(models_to_run, best_models_df, metric):
+  #Clear plot
+  plt.clf()
+
+  #Create plot and axis
+  fig, ax1 = plt.subplots()
+
+  #Create lines for each model
+  for model in models_to_run:
+    ax1.plot( 'test_set_start_date', metric, data=best_models_df[best_models_df['model_name']==model], label=model, marker='o', markersize=6, linewidth=4,alpha=0.6)
+
+  #Show legends
+  plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+
+  #Set axis labels
+  ax1.set_xlabel('Test set start date')
+  ax1.set_ylabel(metric)
+
+  #Invert x_axis so as to show from earliest to latest
+  ax1.invert_xaxis()
+
+  plt.show()
 
 def joint_sort_descending(l1, l2):
     # l1 and l2 have to be numpy arrays
