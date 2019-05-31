@@ -24,7 +24,7 @@ To use the pipeline, import pipeline_v2.py in your use case and use the followin
 
 A minimalistic pipeline and its use case can be found in the minimalist_pipeline folder
 
-For the minimalistic problem (HW2), under minimalistic_pipeline folder
+For the minimalistic problem, under minimalistic_pipeline folder
 * pipeline.py: minimalistic ML pipeline
 * predicting_financial_credit.ipynb: implementation of pipeline.py
 * credit-data.csv:	dataset
