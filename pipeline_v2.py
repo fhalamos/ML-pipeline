@@ -6,8 +6,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-# from sklearn.model_selection import train_test_split
-
 from sklearn.linear_model import LogisticRegression
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.tree import DecisionTreeClassifier
@@ -28,7 +26,7 @@ import textwrap
 
 pd.options.mode.chained_assignment = None  # default='warn'
 
-# import warnings filter
+
 from warnings import simplefilter
 # ignore all future warnings
 simplefilter(action='ignore', category=FutureWarning)
@@ -36,26 +34,34 @@ simplefilter(action='ignore', category=FutureWarning)
 import datetime
 
 def read_csv(url):
+  '''
+  Reades a csv file from url
+  '''
   print ("Reading file...")
   df= pd.read_csv(url) 
   print ("Done")
   return df
 
-# https://medium.com/datadriveninvestor/finding-outliers-in-dataset-using-python-efc3fce6ce32
 def detect_outlier(data):
-    
-    outliers=[]
-    threshold=4
-    mean_1 = np.mean(data)
-    std_1 =np.std(data)    
-    
-    for y in data:
-        z_score= (y - mean_1)/std_1 
-        if np.abs(z_score) > threshold:
-            outliers.append(y)
-    return outliers
+  '''
+  Detects outliers in data (column). Outliers are points that are located more than 4 std from mean
+  '''    
+  outliers=[]
+  threshold=4
+  mean_1 = np.mean(data)
+  std_1 =np.std(data)    
+  
+  for y in data:
+      z_score= (y - mean_1)/std_1 
+      if np.abs(z_score) > threshold:
+          outliers.append(y)
+  return outliers
 
 def explore_data(df, selected_variables, var_for_corr):
+  '''
+  Basic data exploration of df for selected_variables.
+  Also studies correlation for var_for_corr
+  '''
   print ("Data exploration...\n")
   
   n_rows = df.shape[0]
@@ -78,19 +84,31 @@ def explore_data(df, selected_variables, var_for_corr):
 
   print(df[var_for_corr[0]].corr(df[var_for_corr[1]]))
 
-#Filling in missing values with mean
+
 def fill_na_columns_with_mean(df, columns_to_process):
+  '''
+  Filling in missing values of df with mean. Operate over specific columns only (columns_to_process)
+  '''
   for col in columns_to_process:
         df[col].fillna(df[col].median(), inplace=True)  
   return df
 
 
 def create_dummies(df, cols_to_transform):
+  '''
+  Creates dummy variables in df for specific columns cols_to_transform
+  '''
   return pd.get_dummies(df, dummy_na=True, columns = cols_to_transform, drop_first=True)
 
 
 
 def create_feature_number_of_projects_funded_in_last_10_days(data,x_train_data, x_test_data, train_features, test_features):
+  '''
+  Creates a feature specific for the donorschoose problem
+  The feature consists of the number of projects that have been funded in the last 10 days respect to publication date for each project
+  Feature is created for both train and test data, and inserted in train and test features data frame, which are returned.
+  '''
+
   #List of all dates where projects have been posted
   date_posted_list = pd.to_datetime(data['date_posted'].unique())
 
@@ -122,7 +140,9 @@ def create_feature_number_of_projects_funded_in_last_10_days(data,x_train_data, 
 
 
 def create_month_year_features(x_train_data, x_test_data, train_features, test_features):
-
+  '''
+  Create features for month and year from date column
+  '''
   train_features['year'] = pd.DatetimeIndex(x_train_data['date_posted']).year
   train_features['month'] = pd.DatetimeIndex(x_train_data['date_posted']).month
   test_features['year'] = pd.DatetimeIndex(x_test_data['date_posted']).year
@@ -163,7 +183,6 @@ def create_dummys_for_categorical_data(x_train_data,x_test_data):
   For features data on both train and test sets, we programatically select categorical variables and create dummys for them. Return train and test features.
   '''
 
-
   #Select columns from which we will create binary features. We use string columns who have less than 50 different values (we dont want to generate too many binary values)
   str_columns = [column for column in x_train_data.columns if x_train_data[column].dtype=='object' and len(x_train_data[column].unique())<51]
 
@@ -202,7 +221,10 @@ def create_temp_validation_train_and_testing_sets(df, data_column, label_column,
   #For each threshold, create training and test sets
   for index, split_threshold in enumerate(split_thresholds):
 
+    #Save information of train and test set in dictionary
     train_test_set={}
+
+    #The starting point of the test set will be the identification of this train/test sets
     train_test_set['test_set_start_date']=split_threshold
 
     #Columns of boolean values indicating if date_posted value is smaller/bigger than threshold
@@ -241,61 +263,71 @@ def get_best_models_of_each_type_for_each_train_test_set(models_to_run,results,t
   return best_models
 
 def get_models_and_parameters():
+  '''
+  Get a set of classifiers and their possible parameters
+  '''
 
-    models = {
+  models = {
 
-      'DT': DecisionTreeClassifier(random_state=0),
-      'LR': LogisticRegression(penalty='l1', C=1),
-      'RF': RandomForestClassifier(n_estimators=100, max_depth=2, random_state=0),
+    'DT': DecisionTreeClassifier(random_state=0),
+    'LR': LogisticRegression(penalty='l1', C=1),
+    'RF': RandomForestClassifier(n_estimators=100, max_depth=2, random_state=0),
 
-      'BA': BaggingClassifier(KNeighborsClassifier(),n_estimators=10),
-      'AB': AdaBoostClassifier(n_estimators=50),
-      'GB': GradientBoostingClassifier(learning_rate=0.05, n_estimators=10, subsample=0.5),
-      'ET': ExtraTreesClassifier(n_estimators=10, n_jobs=-1, criterion='entropy'),
-      
-      'SVM': LinearSVC(random_state=0, tol=1e-5, C=1, max_iter=10000),
-      'KNN': KNeighborsClassifier(n_neighbors=3),
-      'NB': GaussianNB()
-    }
+    'BA': BaggingClassifier(KNeighborsClassifier(),n_estimators=10),
+    'AB': AdaBoostClassifier(n_estimators=50),
+    'GB': GradientBoostingClassifier(learning_rate=0.05, n_estimators=10, subsample=0.5),
+    'ET': ExtraTreesClassifier(n_estimators=10, n_jobs=-1, criterion='entropy'),
+    
+    'SVM': LinearSVC(random_state=0, tol=1e-5, C=1, max_iter=10000),
+    'KNN': KNeighborsClassifier(n_neighbors=3),
+    'NB': GaussianNB()
+  }
 
-    parameters_grid = { 
+  parameters_grid = { 
+
+    'DT': {'criterion': ['gini', 'entropy'], 'max_depth': [2,5,10,50,100],'min_samples_split': [2,5]},
+    'LR': { 'penalty': ['l1','l2'], 'C': [0.001,0.1,1,10]},
+    'RF': {'n_estimators': [10,100], 'max_depth': [5,50], 'max_features': ['sqrt','log2'],'min_samples_split': [2,10], 'n_jobs': [-1]},
+
+    'BA': {'n_estimators': [10,100],'max_features': [1,10]},
+    'AB': { 'algorithm': ['SAMME', 'SAMME.R'], 'n_estimators': [10,100]},
+    'GB': {'n_estimators': [10,100], 'learning_rate' : [0.001,0.1],'subsample' : [0.1,1.0]},
+    'ET': { 'n_estimators': [100,1000], 'criterion' : ['gini', 'entropy'] ,'max_depth': [2,5,50]},
+
+    'SVM': {'C' :[10**-2, 10**-1, 1 , 10, 10**2]}, 
+    'KNN': {'n_neighbors': [3,5,10,50,100],'weights': ['uniform','distance'],'algorithm': ['auto','ball_tree']},
+    'NB' : {}
+  }
   
-      'DT': {'criterion': ['gini', 'entropy'], 'max_depth': [2,5,10,50,100],'min_samples_split': [2,5]},
-      'LR': { 'penalty': ['l1','l2'], 'C': [0.001,0.1,1,10]},
-      'RF': {'n_estimators': [10,100], 'max_depth': [5,50], 'max_features': ['sqrt','log2'],'min_samples_split': [2,10], 'n_jobs': [-1]},
 
-      'BA': {'n_estimators': [10,100],'max_features': [1,10]},
-      'AB': { 'algorithm': ['SAMME', 'SAMME.R'], 'n_estimators': [10,100]},
-      'GB': {'n_estimators': [10,100], 'learning_rate' : [0.001,0.1],'subsample' : [0.1,1.0]},
-      'ET': { 'n_estimators': [100,1000], 'criterion' : ['gini', 'entropy'] ,'max_depth': [2,5,50]},
+  test_grid = { 
 
-      'SVM': {'C' :[10**-2, 10**-1, 1 , 10, 10**2]}, 
-      'KNN': {'n_neighbors': [3,5,10,50,100],'weights': ['uniform','distance'],'algorithm': ['auto','ball_tree']},
-      'NB' : {}
-    }
-    
+    'DT': {'criterion': ['gini'], 'max_depth': [1],'min_samples_split': [10]},
+    'LR': { 'penalty': ['l1'], 'C': [0.01]},
+    'RF':{'n_estimators': [1], 'max_depth': [1], 'max_features': ['sqrt'],'min_samples_split': [10]},
 
-    test_grid = { 
+    'BA': {'n_estimators': [10],'max_features': [1]},
+    'AB': { 'algorithm': ['SAMME'], 'n_estimators': [1]},
+    'GB': {'n_estimators': [1], 'learning_rate' : [0.1],'subsample' : [0.5], 'max_depth': [1]},
+    'ET': { 'n_estimators': [1], 'criterion' : ['gini'] ,'max_depth': [1], 'max_features': ['sqrt'],'min_samples_split': [10]},
 
-      'DT': {'criterion': ['gini'], 'max_depth': [1],'min_samples_split': [10]},
-      'LR': { 'penalty': ['l1'], 'C': [0.01]},
-      'RF':{'n_estimators': [1], 'max_depth': [1], 'max_features': ['sqrt'],'min_samples_split': [10]},
+    'SVM' :{'C' :[0.01]},
+    'KNN' :{'n_neighbors': [5],'weights': ['uniform'],'algorithm': ['auto']},
+    'NB' : {}
 
-      'BA': {'n_estimators': [10],'max_features': [1]},
-      'AB': { 'algorithm': ['SAMME'], 'n_estimators': [1]},
-      'GB': {'n_estimators': [1], 'learning_rate' : [0.1],'subsample' : [0.5], 'max_depth': [1]},
-      'ET': { 'n_estimators': [1], 'criterion' : ['gini'] ,'max_depth': [1], 'max_features': ['sqrt'],'min_samples_split': [10]},
-
-      'SVM' :{'C' :[0.01]},
-      'KNN' :{'n_neighbors': [5],'weights': ['uniform'],'algorithm': ['auto']},
-      'NB' : {}
-
-    }
-    
-    return models, parameters_grid
+  }
+  
+  return models, parameters_grid
 
 
 def plot_models_in_time(models_to_run, best_models_df, metric):
+  '''
+  Plots how different models behave on metric during time
+  models_to_run defines which models are to be ploted
+  best_models_df contains the dataframe
+  metric is the metric performance we are plotting
+  '''
+
   #Clear plot
   plt.clf()
 
@@ -319,40 +351,54 @@ def plot_models_in_time(models_to_run, best_models_df, metric):
   plt.show()
 
 def joint_sort_descending(l1, l2):
+    # Sort arrays descending together
     # l1 and l2 have to be numpy arrays
     idx = np.argsort(l1)[::-1]
     return l1[idx], l2[idx]
 
-#This method expects ordered y_scores
-def generate_binary_at_k(y_scores, k):    
+
+def generate_binary_at_k(y_scores, k):   
+    '''
+    Generate values of 1 for y_scores in the top k%
+    This method expects ordered y_scores
+    ''' 
+
     #Find the index position where the top k% finishes
     cutoff_index = int(len(y_scores) * (k / 100.0))
+    
+    #Assign 1 to values in the top k %
     predictions_binary = [1 if x < cutoff_index else 0 for x in range(len(y_scores))]
+
     return predictions_binary
 
 
 def metric_at_k(y_true, y_scores, k, metric):
+  '''
+  Calculates metric given y_true and y_score values
+  '''
 
-    y_scores, y_true = joint_sort_descending(np.array(y_scores), np.array(y_true))
-    
-    #generate binary y_scores
-    binary_predictions_at_k = generate_binary_at_k(y_scores, k)
+  y_scores, y_true = joint_sort_descending(np.array(y_scores), np.array(y_true))
+  
+  #generate binary y_scores
+  binary_predictions_at_k = generate_binary_at_k(y_scores, k)
 
 
-    # #classification_report returns different metrics for the prediction
-    results = classification_report(y_true, binary_predictions_at_k, output_dict = True)
-    
-    if(metric=='precision'):
-      metric = results['1']['precision']
-    elif(metric=='recall'):
-      metric = results['1']['recall']
+  # #classification_report returns different metrics for the prediction
+  results = classification_report(y_true, binary_predictions_at_k, output_dict = True)
+  
+  if(metric=='precision'):
+    metric = results['1']['precision']
+  elif(metric=='recall'):
+    metric = results['1']['recall']
+  elif(metric=='f1'):
+    metric = results['1']['f1-score']
 
-    elif(metric=='f1'):
-      metric = results['1']['f1-score']
-
-    return metric
+  return metric
 
 def generate_precision_recall_f1(y_test_sorted,y_pred_scores_sorted, thresholds):
+  '''
+  Calculates precision, recall and f1 metrics for different thresholds
+  '''
   metrics = ['precision', 'recall', 'f1']
 
   output_array=[]
@@ -433,7 +479,9 @@ def plot_precision_recall_n(y_true, y_score, model, parameter_values, test_set_s
 
 
 def iterate_over_models_and_training_test_sets(models_to_run, models, parameters_grid, train_test_sets):
-  
+  '''
+  Iterates over a variety of classifiers, parameters and training/test sets
+  '''
   results_df =  pd.DataFrame(columns=(
     'model_name',
     'model',
@@ -493,17 +541,22 @@ def iterate_over_models_and_training_test_sets(models_to_run, models, parameters
             #Sort according to y_pred_scores, keeping map to their y_test values
             y_pred_scores_sorted, y_test_sorted = zip(*sorted(zip(y_pred_scores, train_test_set['y_test']), reverse=True))
 
-
+            #Define different thresholds to calculate metrics
             thresholds_for_metrics = [1,2,5,10,20,30,50]
 
+            #Baseline will be precision at 100% (assign 1 to everybody)
             baseline = metric_at_k(y_test_sorted,y_pred_scores_sorted,100,'precision')
 
+            #Get precision, recall and f1 for the different thresholds
             prec_rec_f1 = generate_precision_recall_f1(y_test_sorted,y_pred_scores_sorted, thresholds_for_metrics)
 
+            #Calculate roc metric
             roc_auc = roc_auc_score(train_test_set['y_test'], y_pred_scores)
 
+            #Define an identifier for this train/test sets. Will be the starting date of the test set
             test_set_identifier = str(train_test_set['test_set_start_date']).split(' ')[0]
 
+            #Save results
             results_df.loc[len(results_df)] = [models_to_run[index],
                                                model,
                                                p,
@@ -511,6 +564,7 @@ def iterate_over_models_and_training_test_sets(models_to_run, models, parameters
                                                baseline
                                                ]+prec_rec_f1+[roc_auc]
             
+            #Plot and save precision recall curve
             plot_precision_recall_n(train_test_set['y_test'],y_pred_scores,model,p,str(train_test_set['test_set_start_date']),'save')
 
 
